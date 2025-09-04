@@ -51,20 +51,14 @@ function calculateSkillMatch(requiredSkills: any[], employeeSkills: any[]): numb
     )
     const weight = required.mandatory ? 2 : 1
     totalWeight += weight
-    
     if (employeeSkill) {
-      const requiredLevel = skillLevelMap[required.level] || 2
-      const employeeLevel = skillLevelMap[employeeSkill.level] || 1 // Default to beginner if no level
-      const skillMatch = Math.min(employeeLevel / requiredLevel, 1) * 100
-      totalMatch += skillMatch * weight
-      console.log(`  Skill ${required.skill}: required=${required.level}(${requiredLevel}), employee=${employeeSkill.level}(${employeeLevel}), match=${skillMatch.toFixed(1)}%`)
+      totalMatch += 100 * weight // If skill present, count as 100% match
+      console.log(`  Skill ${required.skill}: PRESENT`)
     } else {
-      // Missing skill - 0% match but still counts in weight
       totalMatch += 0
       console.log(`  Skill ${required.skill}: MISSING`)
     }
   }
-  
   const finalMatch = totalWeight > 0 ? Math.round(totalMatch / totalWeight) : 0
   console.log(`  Final match percentage: ${finalMatch}%`)
   return finalMatch
@@ -72,7 +66,7 @@ function calculateSkillMatch(requiredSkills: any[], employeeSkills: any[]): numb
 
 // Helper function to determine readiness status
 function determineReadiness(matchPercentage: number, missingSkills: string[]): 'ready_now' | 'ready_2weeks' | 'ready_4weeks' | 'needs_hiring' {
-  if (matchPercentage >= 85 && missingSkills.length === 0) {
+  if (matchPercentage === 100 && missingSkills.length === 0) {
     return 'ready_now'
   } else if (matchPercentage >= 70 && missingSkills.length <= 2) {
     return 'ready_2weeks'
@@ -87,8 +81,37 @@ function determineReadiness(matchPercentage: number, missingSkills: string[]): '
 async function analyzeSkillRequest(requestId: string, requiredSkills: any[], teamSize: number) {
   try {
     // Import the employee storage to get current data
-    const { employeeStorage } = await import('@/lib/employee-storage')
-    const employees = employeeStorage.getAllEmployees()
+    // Always fetch latest employees from Supabase for analysis
+    let employees: any[] = [];
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabase-admin')
+      const { data, error } = await supabaseAdmin
+        .schema('public')
+        .from('employees')
+        .select('*')
+      if (error) {
+        console.error('Supabase fetch error:', error)
+      }
+      if (data && Array.isArray(data)) {
+        employees = data.map(emp => ({
+          ...emp,
+          skills: Array.isArray(emp.skills)
+            ? emp.skills.map((skill: any) => typeof skill === 'string' ? { skill, level: 'intermediate' } : skill)
+            : [],
+          certifications: Array.isArray(emp.certifications) ? emp.certifications : [],
+          status: emp.status || 'active',
+          location: emp.location || 'Not specified',
+          availability: emp.availability || 'Available',
+          experience: emp.experience || 'Not specified',
+          phone: emp.phone || 'Not specified',
+          currentProjects: emp.current_projects || 0,
+          completedProjects: emp.completed_projects || 0,
+          hireDate: emp.hire_date || '',
+        }))
+      }
+    } catch (err) {
+      console.error('Error fetching employees from Supabase:', err)
+    }
     
     console.log(`🔍 Analyzing ${employees.length} employees for ${requiredSkills.length} required skills`)
     console.log('Required skills:', requiredSkills)
@@ -114,29 +137,26 @@ async function analyzeSkillRequest(requestId: string, requiredSkills: any[], tea
     
     const matches: ResourceMatch[] = []
     
-    // Analyze each employee
+    // Normalize skill names in request and employee data
+    const normalizedRequiredSkills = requiredSkills.map(s => ({
+      ...s,
+      skill: s.skill.trim().toLowerCase()
+    }))
     for (const employee of employees) {
-      console.log(`Analyzing employee: ${employee.name} with skills:`, employee.skills)
-      
-      const matchPercentage = calculateSkillMatch(requiredSkills, employee.skills)
-      console.log(`Match percentage for ${employee.name}: ${matchPercentage}%`)
-      
+      const normalizedEmployeeSkills = employee.skills.map((empSkill: any) => ({
+        ...empSkill,
+        skill: empSkill.skill.trim().toLowerCase()
+      }))
+      // Calculate match percentage
+      const matchPercentage = calculateSkillMatch(normalizedRequiredSkills, normalizedEmployeeSkills)
       // Find missing skills
-      const missingSkills = requiredSkills
+      const missingSkills = normalizedRequiredSkills
         .filter(required => {
-          const hasSkill = employee.skills.some((empSkill: any) => 
-            empSkill.skill === required.skill && 
-            skillLevelMap[empSkill.level] >= skillLevelMap[required.level]
-          )
+          const hasSkill = normalizedEmployeeSkills.some((empSkill: any) => empSkill.skill === required.skill)
           return !hasSkill
         })
         .map((skill: any) => skill.skill)
-      
-      console.log(`Missing skills for ${employee.name}:`, missingSkills)
-      
       const readinessStatus = determineReadiness(matchPercentage, missingSkills)
-      console.log(`Readiness status for ${employee.name}: ${readinessStatus}`)
-      
       // Calculate estimated ready date based on training needed
       let estimatedReadyDate = undefined
       if (readinessStatus === 'ready_2weeks') {
@@ -148,7 +168,6 @@ async function analyzeSkillRequest(requestId: string, requiredSkills: any[], tea
         date.setDate(date.getDate() + 28)
         estimatedReadyDate = date.toISOString().split('T')[0]
       }
-      
       const match: ResourceMatch = {
         id: employee.id,
         name: employee.name,
@@ -160,26 +179,24 @@ async function analyzeSkillRequest(requestId: string, requiredSkills: any[], tea
         currentSkills: employee.skills,
         trainingNeeded: missingSkills,
         estimatedReadyDate,
-        availability: employee.availability,
-        experience: employee.experience,
-        currentProjects: employee.currentProjects,
-        completedProjects: employee.completedProjects
+        availability: employee.availability ?? 'Available',
+        experience: employee.experience ?? 'Not specified',
+        currentProjects: employee.currentProjects ?? 0,
+        completedProjects: employee.completedProjects ?? 0
       }
-      
       matches.push(match)
     }
     
     // Sort by match percentage
     matches.sort((a, b) => b.matchPercentage - a.matchPercentage)
     
-    // Categorize by readiness
-    const readyNow = matches.filter(m => m.readinessStatus === 'ready_now').slice(0, teamSize)
-    const ready2Weeks = matches.filter(m => m.readinessStatus === 'ready_2weeks').slice(0, teamSize)
-    const ready4Weeks = matches.filter(m => m.readinessStatus === 'ready_4weeks').slice(0, teamSize)
-    
-    // Calculate external hire need
-    const totalAvailable = readyNow.length + ready2Weeks.length + ready4Weeks.length
-    const externalHireNeeded = Math.max(0, teamSize - totalAvailable)
+  // Categorize by readiness (show all employees in each category)
+  const readyNow = matches.filter(m => m.readinessStatus === 'ready_now')
+  const ready2Weeks = matches.filter(m => m.readinessStatus === 'ready_2weeks')
+  const ready4Weeks = matches.filter(m => m.readinessStatus === 'ready_4weeks')
+  // Calculate external hire need based on total available
+  const totalAvailable = readyNow.length + ready2Weeks.length + ready4Weeks.length
+  const externalHireNeeded = Math.max(0, teamSize - totalAvailable)
     
     // Generate recommended actions
     const recommendedActions = []
@@ -252,6 +269,31 @@ export async function POST(request: NextRequest) {
       confidenceScore: analysis.confidenceScore
     })
     
+    // If the request wants only 'ready now' employees, filter and return them
+    if (request.headers.get('x-ready-now-only') === 'true') {
+      return NextResponse.json({
+        success: true,
+        readyNow: analysis.readyNow,
+        message: 'Ready now employees only'
+      })
+    }
+    // If the request wants only 'ready in 2 weeks' employees
+    if (request.headers.get('x-ready-2weeks-only') === 'true') {
+      return NextResponse.json({
+        success: true,
+        ready2Weeks: analysis.ready2Weeks,
+        message: 'Ready in 2 weeks employees only'
+      })
+    }
+    // If the request wants only 'ready in 4 weeks' employees
+    if (request.headers.get('x-ready-4weeks-only') === 'true') {
+      return NextResponse.json({
+        success: true,
+        ready4Weeks: analysis.ready4Weeks,
+        message: 'Ready in 4 weeks employees only'
+      })
+    }
+    // Otherwise, return full analysis
     return NextResponse.json({
       success: true,
       analysis,
