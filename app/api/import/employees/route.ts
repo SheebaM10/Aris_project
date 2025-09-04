@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx';
 import { employeeStorage, convertImportedData } from '@/lib/employee-storage'
 
 interface EmployeeData {
