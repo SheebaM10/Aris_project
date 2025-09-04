@@ -608,16 +608,12 @@ export function ARISEnhancedDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
                   <div>
                     <label className="text-sm font-medium">Skill</label>
-                    <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select skill" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSkills.map(skill => (
-                          <SelectItem key={skill} value={skill}>{skill}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                     <Input
+      type="text"
+      placeholder="Enter skill"
+      value={selectedSkill}
+      onChange={(e) => setSelectedSkill(e.target.value)}
+      />
                   </div>
                   <div>
                     <label className="text-sm font-medium">Level</label>
@@ -649,7 +645,7 @@ export function ARISEnhancedDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="mandatory">Mandatory</SelectItem>
-                        <SelectItem value="optional">Optional</SelectItem>
+                        
                       </SelectContent>
                     </Select>
                   </div>
@@ -968,37 +964,7 @@ export function ARISEnhancedDashboard() {
                             >
                               Send Skill Alignment Email
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="mt-3 w-full"
-                              onClick={async () => {
-                                if (!resource.email) {
-                                  alert('Employee email not available');
-                                  return;
-                                }
-                                const subject = `You have been shortlisted!`;
-                                const message = `Dear ${resource.name},\n\nCongratulations! You have been shortlisted for the project based on your skill set. Please check your dashboard for more details.`;
-                                try {
-                                  const response = await fetch('/api/email', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ to: resource.email, subject, message })
-                                  });
-                                  const result = await response.json();
-                                  if (response.ok && result.success !== false) {
-                                    alert('Email sent successfully!');
-                                  } else {
-                                    alert('Failed to send email.');
-                                  }
-                                } catch (err) {
-                                  alert('Error sending email.');
-                                }
-                              }}
-                            >
-                              <Send className="h-4 w-4 mr-1" />
-                              Send Email
-                            </Button>
+                           
                           </div>
                         ))}
                         {currentAnalysis.ready2Weeks.length === 0 && (
@@ -1105,60 +1071,8 @@ export function ARISEnhancedDashboard() {
                 Email Communication
               </CardTitle>
               <div className="flex gap-2 mt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    const testEmail = prompt('Enter test email address:')
-                    if (!testEmail) return
-                    
-                    try {
-                      const response = await fetch('/api/email-test-simple', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ to: testEmail, testType: 'simple' })
-                      })
-                      const result = await response.json()
-                      
-                      if (result.success) {
-                        alert(`Test email sent successfully to ${testEmail}! Check your inbox (and spam folder).`)
-                      } else {
-                        alert(`Test failed: ${result.error}`)
-                      }
-                    } catch (err) {
-                      alert('Test email failed. Check console for details.')
-                    }
-                  }}
-                >
-                  Test Simple Email
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    const testEmail = prompt('Enter test email address:')
-                    if (!testEmail) return
-                    
-                    try {
-                      const response = await fetch('/api/email-test-simple', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ to: testEmail, testType: 'skill_alignment' })
-                      })
-                      const result = await response.json()
-                      
-                      if (result.success) {
-                        alert(`Skill alignment test email sent to ${testEmail}! Check your inbox (and spam folder).`)
-                      } else {
-                        alert(`Test failed: ${result.error}`)
-                      }
-                    } catch (err) {
-                      alert('Test email failed. Check console for details.')
-                    }
-                  }}
-                >
-                  Test Skill Alignment Email
-                </Button>
+                
+                
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

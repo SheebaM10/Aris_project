@@ -1183,66 +1183,15 @@ export function ARISEnhancedDashboard() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-3">
-                        <h4 className="font-medium">Quick Test Emails</h4>
-                        <div className="space-y-2">
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              sendEmail(
-                                'Sheebam@karanji.com',
-                                'Test Email - ARIS System Verification',
-                                'Hello Ateef,\n\nThis is a test email to verify that the ARIS email system is working correctly.\n\nYour skills in Java and AWS make you a valuable team member!\n\nBest regards,\nARIS HR Team',
-                                'general',
-                                { employeeName: 'Ateef Hussain Sheikh' }
-                              )
-                            }}
-                          >
-                            <MailIcon className="h-4 w-4 mr-2" />
-                            Send to Ateef Hussain
-                          </Button>
+                        
                           
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              sendEmail(
-                                'sumithrnaik@karanji.com',
-                                'Test Email - Training Opportunity',
-                                'Hello Sumith,\n\nWe have identified an exciting training opportunity in React and Node.js that aligns with your current skills.\n\nThis will help you advance your JavaScript expertise to the next level.\n\nPlease let us know your availability.\n\nBest regards,\nARIS HR Team',
-                                'training_scheduled',
-                                { 
-                                  employeeName: 'Sumith R Naik',
-                                  trainingSkills: ['React', 'Node.js', 'JavaScript'],
-                                  duration: '4 weeks'
-                                }
-                              )
-                            }}
-                          >
-                            <Award className="h-4 w-4 mr-2" />
-                            Send Training to Sumith
-                          </Button>
+                              
                           
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              sendEmail(
-                                'KSumanth@karanji.com',
-                                'Test Email - Project Assignment',
-                                'Hello Sumanth,\n\nWe have a new Python/Django project that perfectly matches your expertise.\n\nThe client is looking for someone with your level of experience in backend development.\n\nAre you available for a new project starting next week?\n\nBest regards,\nARIS HR Team',
-                                'general',
-                                { 
-                                  employeeName: 'K Sumanth',
-                                  projectName: 'Backend API Development'
-                                }
-                              )
-                            }}
-                          >
-                            <Code className="h-4 w-4 mr-2" />
-                            Send Project to Sumanth
-                          </Button>
-                        </div>
+                          
+                          
+                          
+                          
+                        
                       </div>
                       
                       <div className="space-y-3">
