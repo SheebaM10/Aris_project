@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx';
 import { employeeStorage, convertImportedData } from '@/lib/employee-storage'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 interface EmployeeData {
   id: string
@@ -245,7 +246,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // For actual import, save to storage
+    // For actual import, save to storage and database
     if (action === 'import') {
       try {
         // Convert imported data to storage format
@@ -253,6 +254,70 @@ export async function POST(request: NextRequest) {
         
         // Store in employee storage
         employeeStorage.addEmployees(storedEmployees)
+
+        // Upsert into Supabase
+        // Map to DB schema: skills as JSONB, certifications as TEXT[]
+        const dbRows = storedEmployees.map(emp => ({
+          id: emp.id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department,
+          role: emp.role,
+          location: emp.location,
+          availability: emp.availability,
+          experience: emp.experience,
+          phone: emp.phone,
+          current_projects: emp.currentProjects ?? 0,
+          completed_projects: emp.completedProjects ?? 0,
+          hire_date: emp.hireDate,
+          skills: emp.skills, // JSONB
+          certifications: emp.certifications, // TEXT[]
+          status: emp.status
+        }))
+
+        // Attempt 1: upsert with explicit conflict target on primary key 'id'
+        let { error: upsertError } = await supabaseAdmin
+          .schema('public')
+          .from('employees')
+          .upsert(dbRows, { onConflict: 'id', ignoreDuplicates: false })
+
+        // Attempt 2: if the table doesn't have a PK/unique on id, try upsert without conflict target
+        if (upsertError) {
+          console.warn('Supabase upsert with onConflict=id failed, retrying without onConflict:', upsertError)
+          const attempt = await supabaseAdmin
+            .schema('public')
+            .from('employees')
+            .upsert(dbRows)
+          upsertError = attempt.error || null
+        }
+
+        // Attempt 3: If upsert still fails (e.g., missing constraints), fallback to plain insert
+        if (upsertError) {
+          console.warn('Supabase upsert without onConflict failed, falling back to insert:', upsertError)
+          const insertAttempt = await supabaseAdmin
+            .schema('public')
+            .from('employees')
+            .insert(dbRows)
+          upsertError = insertAttempt.error || null
+        }
+
+        if (upsertError) {
+          console.error('Supabase write failed:', upsertError)
+          // Provide actionable error back to client to aid debugging
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Database upsert failed',
+              supabase: {
+                message: upsertError.message,
+                details: (upsertError as any).details || null,
+                hint: (upsertError as any).hint || null,
+                code: (upsertError as any).code || null
+              }
+            },
+            { status: 500 }
+          )
+        }
         
         const result: ImportResult = {
           success: true,
