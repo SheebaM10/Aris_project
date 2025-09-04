@@ -353,26 +353,7 @@ export function ARISEnhancedDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            ARIS
-            <span className="text-lg font-normal text-muted-foreground">
-              AI Resource Intelligence System
-            </span>
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Workforce Intelligence & Skill Management Platform
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-            <Activity className="h-3 w-3 mr-1" />
-            Active
-          </Badge>
-        </div>
-      </div>
+      
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
@@ -595,18 +576,7 @@ export function ARISEnhancedDashboard() {
                       min="1"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Type</label>
-                    <Select value={isMandatory ? "mandatory" : "optional"} onValueChange={(value) => setIsMandatory(value === "mandatory")}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mandatory">Mandatory</SelectItem>
-                        
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  
                   <Button onClick={addSkill} className="h-10">
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -620,9 +590,7 @@ export function ARISEnhancedDashboard() {
                         <Badge variant="outline">{skill.skill}</Badge>
                         <Badge variant="secondary">{skill.level}</Badge>
                         <span className="text-sm text-muted-foreground">Count: {skill.count}</span>
-                        <Badge className={skill.mandatory ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
-                          {skill.mandatory ? "Mandatory" : "Optional"}
-                        </Badge>
+                       
                       </div>
                       <Button
                         variant="ghost"
