@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server"
 import { employeeStorage } from "@/lib/employee-storage"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 /**
  * Production Employee Data - Gen AI Team
@@ -203,20 +204,52 @@ export async function GET() {
     // Simulate some processing time for realism
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // Get employees from storage (imported data) - no fallback to dummy data
-    const storedEmployees = employeeStorage.getAllEmployees()
-    const employeesToReturn = storedEmployees
+    // Prefer persistent data from Supabase; fallback to in-memory storage
+    let employeesToReturn: any[] = []
+
+    const { data: dbEmployees, error: dbError } = await supabaseAdmin
+      .schema('public')
+      .from('employees')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (dbError) {
+      console.warn('Supabase fetch in /api/data failed, falling back to memory:', dbError)
+    }
+
+    if (dbEmployees && dbEmployees.length > 0) {
+      employeesToReturn = dbEmployees.map((e: any) => ({
+        id: e.id,
+        name: e.name,
+        email: e.email,
+        department: e.department,
+        role: e.role,
+        location: e.location,
+        availability: e.availability,
+        experience: e.experience,
+        phone: e.phone,
+        currentProjects: e.current_projects ?? 0,
+        completedProjects: e.completed_projects ?? 0,
+        hireDate: e.hire_date,
+        skills: Array.isArray(e.skills) ? e.skills.map((s: any) => ({ skill: s.skill, level: s.level })) : [],
+        certifications: e.certifications ?? [],
+        status: e.status
+      }))
+    } else {
+      const storedEmployees = employeeStorage.getAllEmployees()
+      employeesToReturn = storedEmployees
+    }
     
     return NextResponse.json({
       success: true,
       employees: employeesToReturn,
       programs,
       analytics,
-      lastUpdated: storedEmployees.length > 0 ? employeeStorage.getLastUpdated().toISOString() : null,
+      lastUpdated: employeesToReturn.length > 0 ? new Date().toISOString() : null,
       totalEmployees: employeesToReturn.length,
       availableEmployees: employeesToReturn.filter(emp => emp.availability === 'Available').length,
       totalPrograms: programs.length,
-      dataSource: storedEmployees.length > 0 ? 'imported' : 'none'
+      dataSource: (dbEmployees && dbEmployees.length > 0) ? 'supabase' : (employeeStorage.getEmployeeCount() > 0 ? 'imported-memory' : 'none')
     })
   } catch (error) {
     console.error('Error fetching data:', error)
