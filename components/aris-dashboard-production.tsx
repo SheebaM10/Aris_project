@@ -607,7 +607,7 @@ export function ARISEnhancedDashboard() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-indigo-600">
                       <Mail className="h-3 w-3" />
-                      <span>athulyaroy@karanji.com</span>
+                      <span>Athulyaroy@karanji.com</span>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       <Badge variant="outline" className="text-xs bg-purple-50">LLM Development</Badge>

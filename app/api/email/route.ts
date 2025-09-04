@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 import axios from 'axios'
+import { generateTrainingLinksHTML, generateTrainingLinksText, getBestTrainingResourceForSkill } from '../../../lib/training-links'
 
 /**
  * Email configuration with Outlook integration
@@ -503,7 +504,7 @@ ARIS HR Intelligence Team
         <div class="content">
             <p>Dear <strong>${data?.employeeName || 'Team Member'}</strong>,</p>
 
-            <p>Thank you for your interest in the project. After reviewing your profile, we found that your current skill set does not fully match the project requirements.</p>
+            <p>After reviewing your profile, we found that your current skill set does not fully match the project requirements.</p>
 
             <p>To be considered for upcoming opportunities, we request you to undergo training in the following skills:</p>
 
@@ -513,11 +514,9 @@ ARIS HR Intelligence Team
                 : '<span class="skill">Relevant Skills</span>'}
             </div>
 
-            <p>Please follow the link below to access the training resources, or check your employee dashboard for more details.</p>
-
-            <p style="text-align:center; margin: 20px 0;">
-              <a href="${data?.trainingLink || '#'}" class="button">Training Link</a>
-            </p>
+            <p>Please review the training resources below to develop the required skills, or check your employee dashboard for more details.</p>
+            
+            ${generateTrainingLinksHTML(data?.skills || ['Java'])}
 
             <p>Best regards,<br/>
             <strong>${data?.hrTeamName || 'HR Team'}</strong></p>
@@ -535,13 +534,13 @@ Subject: Training Request – Skill Alignment
 
 Dear ${data?.employeeName || 'Team Member'},
 
-Thank you for your interest in the project. After reviewing your profile, we found that your current skill set does not fully match the project requirements.
+After reviewing your profile, we found that your current skill set does not fully match the project requirements.
 
 To be considered for upcoming opportunities, we request you to undergo training in the following skills: ${(data?.skills && Array.isArray(data.skills) && data.skills.length > 0) ? data.skills.join(', ') : 'Relevant Skills'}.
 
 Please follow the link below to access the training resources, or check your employee dashboard for more details.
 
-${data?.trainingLink || '[Training Link]'}
+${generateTrainingLinksText(data?.skills || ['Java'])}
 
 Best regards,
 ${data?.hrTeamName || 'HR Team'}

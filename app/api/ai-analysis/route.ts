@@ -40,27 +40,34 @@ const skillLevelMap: { [key: string]: number } = {
 // Helper function to calculate skill match percentage
 function calculateSkillMatch(requiredSkills: any[], employeeSkills: any[]): number {
   if (requiredSkills.length === 0) return 0
+  if (!employeeSkills || employeeSkills.length === 0) return 0
   
   let totalMatch = 0
   let totalWeight = 0
   
   for (const required of requiredSkills) {
-    const employeeSkill = employeeSkills.find(s => s.skill === required.skill)
+    const employeeSkill = employeeSkills.find(s => 
+      s.skill && s.skill.toLowerCase() === required.skill.toLowerCase()
+    )
     const weight = required.mandatory ? 2 : 1
     totalWeight += weight
     
     if (employeeSkill) {
       const requiredLevel = skillLevelMap[required.level] || 2
-      const employeeLevel = skillLevelMap[employeeSkill.level] || 2
+      const employeeLevel = skillLevelMap[employeeSkill.level] || 1 // Default to beginner if no level
       const skillMatch = Math.min(employeeLevel / requiredLevel, 1) * 100
       totalMatch += skillMatch * weight
+      console.log(`  Skill ${required.skill}: required=${required.level}(${requiredLevel}), employee=${employeeSkill.level}(${employeeLevel}), match=${skillMatch.toFixed(1)}%`)
     } else {
       // Missing skill - 0% match but still counts in weight
       totalMatch += 0
+      console.log(`  Skill ${required.skill}: MISSING`)
     }
   }
   
-  return totalWeight > 0 ? Math.round(totalMatch / totalWeight) : 0
+  const finalMatch = totalWeight > 0 ? Math.round(totalMatch / totalWeight) : 0
+  console.log(`  Final match percentage: ${finalMatch}%`)
+  return finalMatch
 }
 
 // Helper function to determine readiness status
@@ -79,16 +86,40 @@ function determineReadiness(matchPercentage: number, missingSkills: string[]): '
 // AI Analysis function
 async function analyzeSkillRequest(requestId: string, requiredSkills: any[], teamSize: number) {
   try {
-    // Fetch employee data
-    const employeesResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3002'}/api/data`)
-    const employeesData = await employeesResponse.json()
-    const employees = employeesData.employees || []
+    // Import the employee storage to get current data
+    const { employeeStorage } = await import('@/lib/employee-storage')
+    const employees = employeeStorage.getAllEmployees()
+    
+    console.log(`🔍 Analyzing ${employees.length} employees for ${requiredSkills.length} required skills`)
+    console.log('Required skills:', requiredSkills)
+    
+    if (employees.length === 0) {
+      console.log('⚠️ No employees available for analysis')
+      return {
+        requestId,
+        readyNow: [],
+        ready2Weeks: [],
+        ready4Weeks: [],
+        externalHireNeeded: teamSize,
+        recommendedActions: [
+          'No employees available - external hiring required',
+          'Import employee data to enable AI analysis',
+          'Consider using contractors or external consultants'
+        ],
+        confidenceScore: 0,
+        analysisTime: new Date().toISOString(),
+        lastUpdated: new Date().toISOString()
+      }
+    }
     
     const matches: ResourceMatch[] = []
     
     // Analyze each employee
     for (const employee of employees) {
+      console.log(`Analyzing employee: ${employee.name} with skills:`, employee.skills)
+      
       const matchPercentage = calculateSkillMatch(requiredSkills, employee.skills)
+      console.log(`Match percentage for ${employee.name}: ${matchPercentage}%`)
       
       // Find missing skills
       const missingSkills = requiredSkills
@@ -101,7 +132,10 @@ async function analyzeSkillRequest(requestId: string, requiredSkills: any[], tea
         })
         .map((skill: any) => skill.skill)
       
+      console.log(`Missing skills for ${employee.name}:`, missingSkills)
+      
       const readinessStatus = determineReadiness(matchPercentage, missingSkills)
+      console.log(`Readiness status for ${employee.name}: ${readinessStatus}`)
       
       // Calculate estimated ready date based on training needed
       let estimatedReadyDate = undefined
