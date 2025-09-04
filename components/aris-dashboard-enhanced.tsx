@@ -29,6 +29,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getBestTrainingResourceForSkill } from "@/lib/training-links"
+import { ExcelImport } from "./excel-import"
 import { 
   Clock, 
   Users, 
@@ -53,7 +55,8 @@ import {
   Briefcase,
   Settings,
   X,
-  Mail
+  Mail,
+  Upload
 } from "lucide-react"
 
 /**
@@ -819,7 +822,7 @@ Check the Analysis tab for detailed results.`)
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Overview
@@ -839,6 +842,10 @@ Check the Analysis tab for detailed results.`)
           <TabsTrigger value="training" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             Training
+          </TabsTrigger>
+          <TabsTrigger value="import" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Import
           </TabsTrigger>
           <TabsTrigger value="clients" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
@@ -1535,7 +1542,7 @@ Check the Analysis tab for detailed results.`)
                                 {
                                   employeeName: resource.name,
                                   skills: (resource.trainingNeeded && resource.trainingNeeded.length > 0) ? resource.trainingNeeded : ['Python', 'Java'],
-                                  trainingLink: 'https://example.com/training',
+                                  trainingLink: getBestTrainingResourceForSkill(resource.trainingNeeded?.[0] || 'Java').url,
                                   hrTeamName: 'HR Team'
                                 }
                               )
@@ -1941,6 +1948,11 @@ Check the Analysis tab for detailed results.`)
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Import Tab */}
+        <TabsContent value="import" className="space-y-6">
+          <ExcelImport />
         </TabsContent>
 
         {/* Clients Tab */}

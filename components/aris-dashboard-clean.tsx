@@ -23,6 +23,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
+import { getBestTrainingResourceForSkill } from "@/lib/training-links"
+import { ExcelImport } from "@/components/excel-import"
 import {
   Brain,
   Users,
@@ -43,7 +45,8 @@ import {
   Settings,
   X,
   FileText,
-  Activity
+  Activity,
+  Upload
 } from "lucide-react"
 
 // Data fetcher function
@@ -94,7 +97,7 @@ interface ResourceMatch {
 
 export function ARISEnhancedDashboard() {
   // State management
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'requests' | 'analysis' | 'workforce'>('overview')
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'requests' | 'analysis' | 'workforce' | 'import'>('overview')
   const { toast } = useToast()
 
   // API Data fetching
@@ -236,6 +239,17 @@ export function ARISEnhancedDashboard() {
   const runAnalysis = async (request: SkillRequest) => {
     setIsAnalyzing(true)
     try {
+      // Check if we have employees available
+      if (employees.length === 0) {
+        toast({
+          title: "No Data Available",
+          description: "Please import employee data before running AI analysis",
+          variant: "destructive"
+        })
+        setActiveTab('import')
+        return
+      }
+
       const response = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -253,7 +267,7 @@ export function ARISEnhancedDashboard() {
         setActiveTab('analysis')
         toast({
           title: "Analysis Complete",
-          description: "AI analysis has been completed successfully"
+          description: `AI analysis completed with ${result.analysis.readyNow.length} ready now, ${result.analysis.ready2Weeks.length} ready in 2 weeks`
         })
       } else {
         toast({
@@ -263,6 +277,7 @@ export function ARISEnhancedDashboard() {
         })
       }
     } catch (error) {
+      console.error('Analysis error:', error)
       toast({
         title: "Error",
         description: "Failed to run AI analysis",
@@ -357,11 +372,12 @@ export function ARISEnhancedDashboard() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="requests">Skill Requests</TabsTrigger>
           <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
           <TabsTrigger value="workforce">Workforce</TabsTrigger>
+          <TabsTrigger value="import">Import</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -374,6 +390,9 @@ export function ARISEnhancedDashboard() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">Total Employees</p>
                   <p className="text-2xl font-bold">{employees.length}</p>
+                  {employees.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">Import data to get started</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -386,6 +405,9 @@ export function ARISEnhancedDashboard() {
                   <p className="text-2xl font-bold">
                     {employees.filter((emp: any) => emp.availability === 'Available').length}
                   </p>
+                  {employees.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">No data available</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -413,41 +435,61 @@ export function ARISEnhancedDashboard() {
             </Card>
           </div>
 
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Recent Skill Requests
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {skillRequests.slice(0, 3).map((request: SkillRequest) => (
-                  <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{request.projectName}</p>
-                      <p className="text-sm text-muted-foreground">{request.clientName}</p>
-                      <p className="text-xs text-muted-foreground">Team Size: {request.teamSizeRequired}</p>
+          {/* Import Prompt or Recent Activity */}
+          {employees.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Welcome to ARIS</h3>
+                <p className="text-muted-foreground text-center mb-6 max-w-md">
+                  Get started by importing your employee data to unlock the full potential of workforce intelligence and skill management.
+                </p>
+                <Button 
+                  onClick={() => setActiveTab('import')}
+                  size="lg"
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Upload className="h-5 w-5 mr-2" />
+                  Import Employee Data
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Skill Requests
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {skillRequests.slice(0, 3).map((request: SkillRequest) => (
+                    <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{request.projectName}</p>
+                        <p className="text-sm text-muted-foreground">{request.clientName}</p>
+                        <p className="text-xs text-muted-foreground">Team Size: {request.teamSizeRequired}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getPriorityColor(request.priority)}>
+                          {request.priority}
+                        </Badge>
+                        <Badge className={getStatusColor(request.status)}>
+                          {request.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getPriorityColor(request.priority)}>
-                        {request.priority}
-                      </Badge>
-                      <Badge className={getStatusColor(request.status)}>
-                        {request.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-                {skillRequests.length === 0 && (
-                  <p className="text-center text-muted-foreground py-4">
-                    No skill requests found. Create one to get started.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  {skillRequests.length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">
+                      No skill requests found. Create one to get started.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Skill Requests Tab */}
@@ -668,7 +710,8 @@ export function ARISEnhancedDashboard() {
                       <Button
                         size="sm"
                         onClick={() => runAnalysis(request)}
-                        disabled={isAnalyzing}
+                        disabled={isAnalyzing || employees.length === 0}
+                        title={employees.length === 0 ? "Import employee data first" : ""}
                       >
                         {isAnalyzing ? (
                           <>
@@ -682,6 +725,11 @@ export function ARISEnhancedDashboard() {
                           </>
                         )}
                       </Button>
+                      {employees.length === 0 && (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          No data available
+                        </Badge>
+                      )}
                       
                       {request.clientEmail && (
                         <Button
@@ -866,7 +914,7 @@ export function ARISEnhancedDashboard() {
                                       data: {
                                         employeeName: resource.name,
                                         skills: (resource.trainingNeeded && resource.trainingNeeded.length > 0) ? resource.trainingNeeded : ['Python', 'Java'],
-                                        trainingLink: 'https://example.com/training',
+                                        trainingLink: getBestTrainingResourceForSkill(resource.trainingNeeded?.[0] || 'Java').url,
                                         hrTeamName: 'HR Team'
                                       }
                                     })
@@ -1052,6 +1100,11 @@ export function ARISEnhancedDashboard() {
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Employee Directory
+                {employeeData?.dataSource === 'imported' && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Imported Data
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1091,14 +1144,29 @@ export function ARISEnhancedDashboard() {
                 ))}
                 
                 {employees.length === 0 && (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No employees found</p>
+                  <div className="text-center py-12">
+                    <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Employee Data Available</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      Import your employee data using the Import tab to get started with workforce management.
+                    </p>
+                    <Button 
+                      onClick={() => setActiveTab('import')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Go to Import Tab
+                    </Button>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Import Tab */}
+        <TabsContent value="import" className="space-y-6">
+          <ExcelImport />
         </TabsContent>
       </Tabs>
     </div>

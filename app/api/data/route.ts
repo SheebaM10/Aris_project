@@ -1,8 +1,8 @@
 /**
  * Data API Route - /api/data
  * 
- * Provides production employee and program data for the ARIS dashboard
- * Returns real employee data with proper skill levels and email addresses
+ * Provides employee and program data for the ARIS dashboard
+ * Returns imported employee data if available, otherwise falls back to default data
  * 
  * Returns:
  * - employees: List of employees with their skills (beginner/intermediate/expert levels)
@@ -11,6 +11,7 @@
  */
 
 import { NextResponse } from "next/server"
+import { employeeStorage } from "@/lib/employee-storage"
 
 /**
  * Production Employee Data - Gen AI Team
@@ -107,7 +108,7 @@ const employees = [
   {
     id: 'emp5',
     name: 'Sowmyashree',
-    email: 'athulyaroy@karanji.com',
+    email: 'Athulyaroy@karanji.com',
     department: 'Gen AI Development',
     role: 'Senior Gen AI Developer',
     location: 'Bangalore, India',
@@ -202,21 +203,44 @@ export async function GET() {
     // Simulate some processing time for realism
     await new Promise(resolve => setTimeout(resolve, 100))
     
+    // Get employees from storage (imported data) - no fallback to dummy data
+    const storedEmployees = employeeStorage.getAllEmployees()
+    const employeesToReturn = storedEmployees
+    
     return NextResponse.json({
       success: true,
-      employees,
+      employees: employeesToReturn,
       programs,
       analytics,
-      lastUpdated: new Date().toISOString(),
-      totalEmployees: employees.length,
-      availableEmployees: employees.filter(emp => emp.availability === 'Available').length,
-      totalPrograms: programs.length
+      lastUpdated: storedEmployees.length > 0 ? employeeStorage.getLastUpdated().toISOString() : null,
+      totalEmployees: employeesToReturn.length,
+      availableEmployees: employeesToReturn.filter(emp => emp.availability === 'Available').length,
+      totalPrograms: programs.length,
+      dataSource: storedEmployees.length > 0 ? 'imported' : 'none'
     })
   } catch (error) {
     console.error('Error fetching data:', error)
     return NextResponse.json({ 
       success: false,
       error: 'Failed to fetch data' 
+    }, { status: 500 })
+  }
+}
+
+export async function DELETE() {
+  try {
+    // Clear imported data and return to default
+    employeeStorage.clear()
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Imported data cleared, returning to default data'
+    })
+  } catch (error) {
+    console.error('Error clearing data:', error)
+    return NextResponse.json({ 
+      success: false,
+      error: 'Failed to clear data' 
     }, { status: 500 })
   }
 }
