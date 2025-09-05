@@ -1,14 +1,15 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useRouter } from "next/navigation";
-import { ARISEnhancedDashboard } from "@/components/aris-dashboard-clean"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Badge } from "@/components/ui/badge"
-import { Brain } from "lucide-react"
-import { supabase } from "../lib/supabaseClient";
 
-export default function Page() {
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Badge } from '@/components/ui/badge';
+import { Brain } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { ARISEnhancedDashboard } from '@/components/aris-dashboard-clean';
+
+export default function HRPortal() {
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -26,12 +27,12 @@ export default function Page() {
               ARIS — AI Resource Intelligence System
             </h1>
             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              Active
+              HR Portal
             </Badge>
           </div>
           <p className="text-muted-foreground text-sm md:text-base">
             <strong>Workforce Intelligence Platform</strong><br />
-            Create skill requests, run AI analysis, and manage workforce resources with intelligent matching and email communication.
+            Manage employees, skill requests, and AI analysis with full HR access.
           </p>
         </div>
         <div className="shrink-0 flex gap-2 items-center">
