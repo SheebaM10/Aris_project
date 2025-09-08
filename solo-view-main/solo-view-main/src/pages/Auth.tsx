@@ -26,11 +26,22 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        if (error.message.toLowerCase().includes("email not confirmed") ||
+            error.message.toLowerCase().includes("email not verified") ||
+            error.message.toLowerCase().includes("invalid login credentials")) {
+          // Attempt to resend confirmation email silently
+          await supabase.auth.resend({ type: 'signup', email });
+          toast({
+            title: "Verify your email",
+            description: "We re-sent the verification link to your inbox.",
+          });
+        } else {
+          toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Welcome back!",
@@ -54,7 +65,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth/callback`;
       
       const { error } = await supabase.auth.signUp({
         email,

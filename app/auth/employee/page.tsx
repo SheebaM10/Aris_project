@@ -19,9 +19,19 @@ export default function EmployeeLogin() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      const message = error.message.toLowerCase();
+      if (message.includes('email not confirmed') || message.includes('email not verified') || message.includes('invalid login credentials')) {
+        try {
+          await supabase.auth.resend({ type: 'signup', email });
+          setError('Please verify your email. A new link has been sent.');
+        } catch (err: any) {
+          setError(err?.message || 'Login failed. Please verify your email.');
+        }
+      } else {
+        setError(error.message);
+      }
     } else {
-      router.push('/employee-portal');
+      router.push('/employee-portal/welcome');
     }
   };
 
@@ -29,7 +39,14 @@ export default function EmployeeLogin() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const { error } = await supabase.auth.signUp({ email, password });
+    const redirectUrl = `${window.location.origin}/auth/employee/callback`;
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+      }
+    });
     setLoading(false);
     if (error) {
       setError(error.message);
@@ -37,6 +54,19 @@ export default function EmployeeLogin() {
       setError('Check your email to confirm your account.');
     }
   };
+
+  const handleResend = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await supabase.auth.resend({ type: 'signup', email });
+      setError('Verification email re-sent. Please check your inbox.');
+    } catch (err: any) {
+      setError(err?.message || 'Could not resend verification email.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
@@ -50,6 +80,13 @@ export default function EmployeeLogin() {
         <button type="submit" disabled={loading} style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', borderRadius: '8px', background: isSignUp ? '#059669' : '#2563eb', color: 'white', border: 'none', cursor: 'pointer' }}>
           {loading ? (isSignUp ? 'Signing up...' : 'Logging in...') : (isSignUp ? 'Sign Up' : 'Log In')}
         </button>
+        {isSignUp && (
+          <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+            <button type="button" onClick={handleResend} disabled={loading || !email} style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+              Resend verification email
+            </button>
+          </div>
+        )}
         <div style={{ marginTop: '1rem', textAlign: 'center' }}>
           {isSignUp ? (
             <span>Already have an account?{' '}

@@ -5,7 +5,7 @@ export default function EmployeePortal() {
   return (
     <div style={{ width: '100vw', height: '100vh', border: 'none', padding: 0, margin: 0 }}>
       <iframe
-        src="http://localhost:5173" // Change this to the deployed URL or relative path if needed
+        src={process.env.NEXT_PUBLIC_EMP_PORTAL_URL || "http://localhost:5173"}
         style={{ width: '100%', height: '100%', border: 'none' }}
         title="Employee Portal"
       />
