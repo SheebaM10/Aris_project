@@ -1,39 +1,101 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { employeeStorage } from '@/lib/employee-storage';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-
-
-// Helper to get user from Supabase session cookie (Next.js 14+)
-async function getUserFromCookie() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const cookieStore = await cookies();
-  // Build cookie header string
-  const allCookies = cookieStore.getAll();
-  const cookieHeader = allCookies.map(c => `${c.name}=${c.value}`).join('; ');
-  console.log('DEBUG: Cookies received:', allCookies);
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Cookie: cookieHeader } },
-  });
-  const { data: { user }, error } = await supabase.auth.getUser();
-  console.log('DEBUG: Supabase user:', user, 'error:', error);
-  return user;
-}
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getUserFromCookie();
-    if (!user || !user.email) {
-      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+    // Get access token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    const accessToken = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : undefined;
+
+    if (!accessToken) {
+      return NextResponse.json(
+        { success: false, error: 'No access token provided' },
+        { status: 401 }
+      );
     }
-    const allEmployees = employeeStorage.getAllEmployees();
-    const profile = allEmployees.find(emp => emp.email === user.email);
-    if (!profile) {
-      return NextResponse.json({ success: false, error: 'Profile not found' }, { status: 404 });
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+    });
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(accessToken);
+
+    if (!user || !user.id) {
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated', debug: { user, userError } },
+        { status: 401 }
+      );
     }
-    return NextResponse.json({ success: true, profile });
+
+    // Normalize email for safety
+    const normalizedEmail = user.email?.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      return NextResponse.json(
+        { success: false, error: 'User email is undefined', debug: { user, userError } },
+        { status: 400 }
+      );
+    }
+
+    // Try finding by email (exact match, since table is clean now)
+    let { data: employee, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    // Fallback: try case-insensitive if still not found
+    if (!employee) {
+      const { data: fallbackEmployee, error: fallbackError } = await supabase
+        .from('employees')
+        .select('*')
+        .ilike('email', normalizedEmail)
+        .maybeSingle();
+
+      if (fallbackEmployee) {
+        employee = fallbackEmployee;
+        error = null;
+      }
+    }
+
+    // If still not found
+    if (error || !employee) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Profile not found',
+          debug: { user, userError, employeeError: error, triedEmail: normalizedEmail },
+        },
+        { status: 404 }
+      );
+    }
+
+    // ✅ Success
+    return NextResponse.json({
+      success: true,
+      profile: employee,
+      debug: { user, triedEmail: normalizedEmail },
+    });
   } catch (e) {
-    return NextResponse.json({ success: false, error: (e as Error).message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: (e as Error).message, debug: String(e) },
+      { status: 500 }
+    );
   }
 }

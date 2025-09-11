@@ -2,7 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../../lib/supabaseClient';
+import { createSupabaseBrowserClient } from '../../../lib/supabaseBrowserClient';
 
 export default function EmployeeLogin() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function EmployeeLogin() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
@@ -39,6 +40,7 @@ export default function EmployeeLogin() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    const supabase = createSupabaseBrowserClient();
     const redirectUrl = `${window.location.origin}/auth/employee/callback`;
     const { error } = await supabase.auth.signUp({ 
       email, 
@@ -58,6 +60,7 @@ export default function EmployeeLogin() {
   const handleResend = async () => {
     setLoading(true);
     setError('');
+    const supabase = createSupabaseBrowserClient();
     try {
       await supabase.auth.resend({ type: 'signup', email });
       setError('Verification email re-sent. Please check your inbox.');

@@ -42,7 +42,7 @@ export default function HRPortal() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '6px',
-              background: '#ef4444',
+              background: '#7744efff',
               color: 'white',
               border: 'none',
               cursor: 'pointer',

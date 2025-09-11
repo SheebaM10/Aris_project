@@ -1384,7 +1384,7 @@ Check the Analysis tab for detailed results.`)
                       <div className="text-sm text-muted-foreground">Ready in 2 weeks</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">
+                      <div className="text-2xl font-bold text-yellow-600">
                         {currentAnalysis.analysis?.ready4Weeks.length || 0}
                       </div>
                       <div className="text-sm text-muted-foreground">Ready in 4 weeks</div>

@@ -2,6 +2,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createSupabaseBrowserClient } from '../../../lib/supabaseBrowserClient';
 
 interface EmployeeProfile {
   id: string;
@@ -10,11 +11,7 @@ interface EmployeeProfile {
   department: string;
   role: string;
   location: string;
-  availability: boolean | string;
-  experience: number;
-  phone: string;
-  currentProjects: string[];
-  completedProjects: string[];
+  availability: string; // text column in DB: "Available" | "Busy"
 }
 
 export default function EmployeeProfilePage() {
@@ -26,11 +23,23 @@ export default function EmployeeProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const checkSession = async () => {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/auth/employee');
+        return;
+      }
       setLoading(true);
       setError('');
       try {
-  const res = await fetch('/api/employee/profile', { credentials: 'include' });
+        const res = await fetch('/api/employee/profile', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
         const result = await res.json();
         if (!result.success) {
           setError(result.error || 'Could not fetch profile.');
@@ -44,14 +53,14 @@ export default function EmployeeProfilePage() {
       }
       setLoading(false);
     };
-    fetchProfile();
+    checkSession();
   }, [router]);
 
   const handleChange = (e: any) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setForm((prev: any) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -59,18 +68,22 @@ export default function EmployeeProfilePage() {
     if (!form) return;
     setLoading(true);
     setError('');
-    // TODO: Implement update via API if needed
+    // TODO: call update API to persist changes
     setProfile(form);
     setEditMode(false);
     setLoading(false);
   };
 
   const handleLogout = async () => {
-    // TODO: Implement logout logic if needed
     router.push('/auth/employee');
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><div className="loader" /> Loading...</div>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="loader" /> Loading...
+      </div>
+    );
   if (error) return <div className="text-red-500 text-center mt-8">{error}</div>;
   if (!profile) return null;
 
@@ -79,104 +92,119 @@ export default function EmployeeProfilePage() {
       <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Welcome, {profile.name}</h1>
-          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
+            Logout
+          </button>
         </div>
         <div className="border-b mb-6" />
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-4 flex-wrap">
-            <div className="w-1/2">
-              <label className="font-semibold">Name:</label>
-              {editMode ? (
-                <input name="name" value={form?.name || ''} onChange={handleChange} className="input" />
-              ) : (
-                <span className="ml-2">{profile.name}</span>
-              )}
-            </div>
-            <div className="w-1/2">
-              <label className="font-semibold">Email:</label>
-              <span className="ml-2">{profile.email}</span>
-            </div>
-            <div className="w-1/2">
-              <label className="font-semibold">Department:</label>
-              {editMode ? (
-                <input name="department" value={form?.department || ''} onChange={handleChange} className="input" />
-              ) : (
-                <span className="ml-2">{profile.department}</span>
-              )}
-            </div>
-            <div className="w-1/2">
-              <label className="font-semibold">Role:</label>
-              {editMode ? (
-                <input name="role" value={form?.role || ''} onChange={handleChange} className="input" />
-              ) : (
-                <span className="ml-2">{profile.role}</span>
-              )}
-            </div>
-            <div className="w-1/2">
-              <label className="font-semibold">Location:</label>
-              {editMode ? (
-                <input name="location" value={form?.location || ''} onChange={handleChange} className="input" />
-              ) : (
-                <span className="ml-2">{profile.location}</span>
-              )}
-            </div>
-            <div className="w-1/2">
-              <label className="font-semibold">Availability:</label>
-              {editMode ? (
-                <select name="availability" value={form?.availability ? 'true' : 'false'} onChange={handleChange} className="input">
-                  <option value="true">Available</option>
-                  <option value="false">Not Available</option>
-                </select>
-              ) : (
-                <span className="ml-2">{profile.availability ? 'Available' : 'Not Available'}</span>
-              )}
-            </div>
-            <div className="w-1/2">
-              <label className="font-semibold">Experience:</label>
-              {editMode ? (
-                <input name="experience" type="number" value={form?.experience || 0} onChange={handleChange} className="input" />
-              ) : (
-                <span className="ml-2">{profile.experience} years</span>
-              )}
-            </div>
-            <div className="w-1/2">
-              <label className="font-semibold">Phone:</label>
-              {editMode ? (
-                <input name="phone" value={form?.phone || ''} onChange={handleChange} className="input" />
-              ) : (
-                <span className="ml-2">{profile.phone}</span>
-              )}
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="font-semibold">ID:</label>
+            <span className="ml-2">{profile.id}</span>
           </div>
           <div>
-            <label className="font-semibold">Current Projects:</label>
+            <label className="font-semibold">Name:</label>
             {editMode ? (
-              <input name="currentProjects" value={form?.currentProjects?.join(', ') || ''} onChange={e => setForm(f => ({ ...f!, currentProjects: e.target.value.split(',').map((s: string) => s.trim()) }))} className="input" />
+              <input
+                name="name"
+                value={form?.name || ''}
+                onChange={handleChange}
+                className="input"
+              />
             ) : (
-              <ul className="list-disc ml-6">
-                {profile.currentProjects?.map((p, i) => <li key={i}>{p}</li>)}
-              </ul>
+              <span className="ml-2">{profile.name}</span>
             )}
           </div>
           <div>
-            <label className="font-semibold">Completed Projects:</label>
+            <label className="font-semibold">Email:</label>
+            <span className="ml-2">{profile.email}</span>
+          </div>
+          <div>
+            <label className="font-semibold">Department:</label>
             {editMode ? (
-              <input name="completedProjects" value={form?.completedProjects?.join(', ') || ''} onChange={e => setForm(f => ({ ...f!, completedProjects: e.target.value.split(',').map((s: string) => s.trim()) }))} className="input" />
+              <input
+                name="department"
+                value={form?.department || ''}
+                onChange={handleChange}
+                className="input"
+              />
             ) : (
-              <ul className="list-disc ml-6">
-                {profile.completedProjects?.map((p, i) => <li key={i}>{p}</li>)}
-              </ul>
+              <span className="ml-2">{profile.department}</span>
+            )}
+          </div>
+          <div>
+            <label className="font-semibold">Role:</label>
+            {editMode ? (
+              <input
+                name="role"
+                value={form?.role || ''}
+                onChange={handleChange}
+                className="input"
+              />
+            ) : (
+              <span className="ml-2">{profile.role}</span>
+            )}
+          </div>
+          <div>
+            <label className="font-semibold">Location:</label>
+            {editMode ? (
+              <input
+                name="location"
+                value={form?.location || ''}
+                onChange={handleChange}
+                className="input"
+              />
+            ) : (
+              <span className="ml-2">{profile.location}</span>
+            )}
+          </div>
+          <div>
+            <label className="font-semibold">Availability:</label>
+            {editMode ? (
+              <select
+                name="availability"
+                value={form?.availability || ''}
+                onChange={handleChange}
+                className="input"
+              >
+                <option value="Available">Available</option>
+                <option value="Busy">Busy</option>
+              </select>
+            ) : (
+              <span className="ml-2">{profile.availability}</span>
             )}
           </div>
         </div>
+
         <div className="flex gap-4 mt-8 justify-end">
           {editMode ? (
             <>
-              <button onClick={handleSave} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
-              <button onClick={() => { setEditMode(false); setForm(profile); }} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+              <button
+                onClick={handleSave}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setEditMode(false);
+                  setForm(profile);
+                }}
+                className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
             </>
           ) : (
-            <button onClick={() => setEditMode(true)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Edit Profile</button>
+            <button
+              onClick={() => setEditMode(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Edit Profile
+            </button>
           )}
         </div>
       </div>
@@ -197,8 +225,12 @@ export default function EmployeeProfilePage() {
           animation: spin 1s linear infinite;
         }
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </div>
