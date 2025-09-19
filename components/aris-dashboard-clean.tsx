@@ -14,6 +14,7 @@
  */
 
 import React from "react"
+import { TrendsInsights } from "../app/employee-dashboard/components/trends-insights"
 import useSWR from "swr"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -98,6 +99,20 @@ interface ResourceMatch {
 }
 
 export function ARISEnhancedDashboard() {
+  // State for career requirements file upload
+  const [careerFile, setCareerFile] = React.useState<File | null>(null);
+  const handleCareerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setCareerFile(e.target.files[0]);
+    } else {
+      setCareerFile(null);
+    }
+  };
+  const uploadCareerRequirements = () => {
+    if (!careerFile) return;
+    // TODO: Parse and process the file for AI analysis
+    alert(`File '${careerFile.name}' uploaded! (Parsing not yet implemented)`);
+  };
   // Hardcoded manager email
   const managerEmail = 'karanjibuddy@gmail.com';
   // Manager approval state for Ready Now
@@ -418,43 +433,9 @@ export function ARISEnhancedDashboard() {
           <TabsTrigger value="trends">Trends & Insights</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
         </TabsList>
-        {/* Trends & Insights Tab */}
+        {/* Trends & Insights Tab (Charts) */}
         <TabsContent value="trends" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Industry Trends & Insights
-              </CardTitle>
-              <p className="text-muted-foreground mt-2 text-sm">Latest real-time news and trends from the market.</p>
-            </CardHeader>
-            <CardContent>
-              {trendsLoading ? (
-                <p>Loading industry trends...</p>
-              ) : trendsError ? (
-                <p className="text-red-600">{trendsError}</p>
-              ) : trends.length > 0 ? (
-                <div className="space-y-4">
-                  {trends.map((article: any, idx: number) => (
-                    <a key={idx} href={article.url} target="_blank" rel="noopener noreferrer" className="block p-4 border rounded-lg hover:bg-gray-50 transition">
-                      <div className="flex items-center gap-2">
-                        {article.urlToImage && (
-                          <img src={article.urlToImage} alt="" className="w-16 h-16 object-cover rounded mr-3" />
-                        )}
-                        <div>
-                          <h3 className="font-semibold text-lg">{article.title}</h3>
-                          <p className="text-sm text-muted-foreground">{article.source?.name} • {new Date(article.publishedAt).toLocaleString()}</p>
-                          <p className="text-sm mt-1">{article.description}</p>
-                        </div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No industry trends found.</p>
-              )}
-            </CardContent>
-          </Card>
+          <TrendsInsights />
         </TabsContent>
 
         {/* Overview Tab */}
@@ -1314,8 +1295,23 @@ export function ARISEnhancedDashboard() {
               {/* HR Upload Career Role Requirements */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Upload Career Role Requirements (CSV/Excel)</label>
-                <Input type="file" accept=".csv,.xlsx" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {/* TODO: handle file upload */}} />
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx"
+                  onChange={handleCareerFileUpload}
+                />
+                <Button
+                  className="mt-2 bg-blue-600 hover:bg-blue-700"
+                  onClick={uploadCareerRequirements}
+                  disabled={!careerFile}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload
+                </Button>
                 <p className="text-xs text-muted-foreground">Supported: CSV, Excel. Example: Role, Required Skills, Certifications, Experience, Training</p>
+                {careerFile && (
+                  <p className="text-xs text-green-700 mt-1">Selected file: {careerFile.name}</p>
+                )}
               </div>
 
               {/* AI Analysis Results */}

@@ -32,7 +32,7 @@ export default function EmployeeLogin() {
         setError(error.message);
       }
     } else {
-      router.push('/employee-portal/welcome');
+      router.push('/employee-dashboard/components/employee-login.tsx');
     }
   };
 
