@@ -13,7 +13,7 @@ export interface Employee {
   skills: Skill[]
   certifications: Certification[]
   trainings: TrainingEnrollment[]
-  created_at?: string
+
   updated_at?: string
 }
 
@@ -43,14 +43,14 @@ export interface TrainingProgram {
   skills_covered: { name: string; to_level: number }[]
   est_days: number
   provider?: string
-  created_at?: string
+
   updated_at?: string
 }
 
 export interface SkillRequest {
   id: string
   requested_by: 'delivery' | 'hr' | 'system'
-  created_at: string
+
   skills: { name: string; min_level: number }[]
   status: 'open' | 'in_review' | 'fulfilled' | 'closed'
   analysis_snapshot?: any

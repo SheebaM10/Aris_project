@@ -25,12 +25,20 @@ export type TrainingEnrollment = {
 export type Employee = {
   id: string
   name: string
+  email: string
+  department: string
   role: string
-  skills: Skill[]
-  certifications: Certification[]
-  trainings: TrainingEnrollment[]
-  created_at?: string
+  location: string
+  availability: string
+  experience: string
+  phone: string
+  current_projects: number
+  completed_projects: number
+  skills: Skill[] | string | string[]
+  certifications: Certification[] | string | string[]
+  status: string
   updated_at?: string
+  trainings?: TrainingEnrollment[]
 }
 
 export type RequiredSkill = {
@@ -41,7 +49,6 @@ export type RequiredSkill = {
 export type SkillRequest = {
   id: string
   requested_by: "delivery" | "hr" | "system"
-  created_at: string
   skills: RequiredSkill[]
   status: "open" | "in_review" | "fulfilled" | "closed"
   analysis_snapshot?: GapAnalysis
@@ -79,7 +86,6 @@ export type TrainingProgram = {
   skills_covered: { name: string; to_level: SkillLevel }[]
   est_days: number
   provider?: string
-  created_at?: string
   updated_at?: string
 }
 

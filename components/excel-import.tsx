@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast'
 import useSWR from 'swr'
 
 interface EmployeeData {
+  id?: string
   name: string
   email: string
   department: string
@@ -29,6 +30,8 @@ interface EmployeeData {
   skills: string[]
   certifications: string[]
   status: 'active' | 'inactive'
+  availability?: string
+  location?: string
 }
 
 interface ImportResult {
@@ -69,19 +72,21 @@ export function ExcelImport() {
     setIsDragOver(false)
     
     const files = Array.from(e.dataTransfer.files)
-    const excelFile = files.find(file => 
+    const importFile = files.find(file => 
       file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
       file.type === 'application/vnd.ms-excel' ||
+      file.type === 'text/csv' ||
       file.name.endsWith('.xlsx') ||
-      file.name.endsWith('.xls')
+      file.name.endsWith('.xls') ||
+      file.name.endsWith('.csv')
     )
-    
-    if (excelFile) {
-      setSelectedFile(excelFile)
+
+    if (importFile) {
+      setSelectedFile(importFile)
     } else {
       toast({
         title: "Invalid file type",
-        description: "Please select an Excel file (.xlsx or .xls)",
+        description: "Please select an Excel (.xlsx, .xls) or CSV (.csv) file",
         variant: "destructive"
       })
     }
@@ -90,7 +95,24 @@ export function ExcelImport() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setSelectedFile(file)
+      const validTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'text/csv'
+      ];
+      const validExtensions = ['.xlsx', '.xls', '.csv'];
+      if (
+        validTypes.includes(file.type) ||
+        validExtensions.some(ext => file.name.endsWith(ext))
+      ) {
+        setSelectedFile(file);
+      } else {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an Excel (.xlsx, .xls) or CSV (.csv) file",
+          variant: "destructive"
+        });
+      }
     }
   }
 
@@ -184,21 +206,69 @@ export function ExcelImport() {
   }
 
   const downloadTemplate = () => {
-    // Create a simple CSV template for download
+    // Create XLSX template for download
     const templateData = [
-      ['id', 'name', 'email', 'department', 'role', 'location', 'availability', 'experience', 'phone', 'currentProjects', 'completedProjects', 'skills'],
-      ['EMP001', 'John Doe', 'john.doe@company.com', 'Engineering', 'Software Developer', 'New York, NY', 'Available', '5+ years', '+1-555-0123', '2', '15', 'Java, React, AWS'],
-      ['EMP002', 'Jane Smith', 'jane.smith@company.com', 'Marketing', 'Marketing Manager', 'San Francisco, CA', 'Available', '3+ years', '+1-555-0124', '1', '8', 'Digital Marketing, Analytics']
-    ]
+      [
+        'id',
+        'name',
+        'email',
+        'department',
+        'role',
+        'location',
+        'availability',
+        'experience',
+        'phone',
+        'currentProjects',
+        'completedProjects',
+        'skills',
+        'status'
+      ],
+      [
+        'EMP001',
+        'John Doe',
+        'john.doe@company.com',
+        'Engineering',
+        'Software Developer',
+        'New York, NY',
+        'Available',
+        '5+ years',
+        '+1-555-0123',
+        '2',
+        '15',
+        'Java, React, AWS',
+        'active'
+      ],
+      [
+        'EMP002',
+        'Jane Smith',
+        'jane.smith@company.com',
+        'Marketing',
+        'Marketing Manager',
+        'San Francisco, CA',
+        'Available',
+        '3+ years',
+        '+1-555-0124',
+        '1',
+        '8',
+        'Digital Marketing, Analytics',
+        'active'
+      ]
+    ];
 
-    const csvContent = templateData.map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'employee_import_template.csv'
-    a.click()
-    window.URL.revokeObjectURL(url)
+    // Dynamically import xlsx
+    import('xlsx').then(xlsx => {
+      const ws = xlsx.utils.aoa_to_sheet(templateData);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, 'Employees');
+      const xlsxBlob = xlsx.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([xlsxBlob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'employee_import_template.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
   }
 
   const clearFile = () => {
@@ -290,7 +360,7 @@ export function ExcelImport() {
               <h4 className="font-medium text-blue-900">Download Template</h4>
               <p className="text-sm text-blue-700">Get the Excel template with the correct format</p>
               <p className="text-xs text-blue-600 mt-1">
-                Required columns: id, name, email, department, role, location, availability, experience, phone, currentProjects, completedProjects, skills
+                Required columns: id, name, email, department, role, location, availability, experience, phone, currentProjects, completedProjects, skills, status
               </p>
             </div>
             <div className="flex gap-2">

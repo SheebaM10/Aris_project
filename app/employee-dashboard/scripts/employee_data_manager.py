@@ -32,10 +32,9 @@ class EmployeeDashboardDB:
                 email TEXT UNIQUE NOT NULL,
                 department TEXT NOT NULL,
                 position TEXT NOT NULL,
-                hire_date DATE NOT NULL,
                 photo_url TEXT,
                 years_experience REAL DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
             )
         ''')
         
@@ -46,7 +45,7 @@ class EmployeeDashboardDB:
                 name TEXT UNIQUE NOT NULL,
                 category TEXT NOT NULL,
                 description TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
             )
         ''')
         
@@ -95,7 +94,7 @@ class EmployeeDashboardDB:
                 rating REAL DEFAULT 0,
                 total_students INTEGER DEFAULT 0,
                 skills_taught TEXT, -- JSON array of skills
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
             )
         ''')
         
@@ -127,7 +126,7 @@ class EmployeeDashboardDB:
                 estimated_completion_months INTEGER DEFAULT 12,
                 priority TEXT DEFAULT 'medium', -- high, medium, low
                 status TEXT DEFAULT 'active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
                 FOREIGN KEY (employee_id) REFERENCES employees (id)
             )
         ''')
@@ -175,7 +174,7 @@ class EmployeeDashboardDB:
         employee_id = str(uuid.uuid4())
         cursor.execute('''
             INSERT OR REPLACE INTO employees 
-            (id, name, email, department, position, hire_date, years_experience)
+            (id, name, email, department, position, years_experience)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (employee_id, "Sarah Johnson", "sarah.johnson@company.com", 
               "Software Engineering", "Senior Developer", "2019-03-15", 5.5))
@@ -374,7 +373,7 @@ class EmployeeDashboardDB:
         for emp in real_employees:
             cursor.execute('''
                 INSERT OR REPLACE INTO employees 
-                (id, name, email, department, position, hire_date, years_experience, photo_url)
+                (id, name, email, department, position, years_experience, photo_url)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (emp["id"], emp["name"], emp["email"], emp["department"], 
                   emp["position"], "2023-01-15", random.uniform(2.0, 6.0), 
@@ -502,7 +501,6 @@ class EmployeeDashboardDB:
             'email': employee[2],
             'department': employee[3],
             'position': employee[4],
-            'hire_date': employee[5],
             'photo_url': employee[6],
             'years_experience': employee[7],
             'competency_score': competency_score,
@@ -750,7 +748,7 @@ class EmployeeDashboardDB:
         try:
             cursor.execute('''
                 INSERT INTO employees 
-                (id, name, email, department, position, hire_date, years_experience, photo_url)
+                (id, name, email, department, position, years_experience, photo_url)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 employee_id,
@@ -758,7 +756,6 @@ class EmployeeDashboardDB:
                 employee_data['email'],
                 employee_data['department'],
                 employee_data['position'],
-                employee_data.get('hire_date', datetime.now().date()),
                 employee_data.get('years_experience', 0),
                 employee_data.get('photo_url', '/professional-woman-smiling.png')
             ))
@@ -975,7 +972,7 @@ class EmployeeDashboardDB:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        query = 'SELECT id, name, email, department, position, hire_date FROM employees WHERE 1=1'
+        query = 'SELECT id, name, email, department, position FROM employees WHERE 1=1'
         params = []
         
         if search_term:
@@ -1000,7 +997,6 @@ class EmployeeDashboardDB:
                 'email': emp[2],
                 'department': emp[3],
                 'position': emp[4],
-                'hire_date': emp[5]
             } for emp in employees
         ]
     

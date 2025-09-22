@@ -7,7 +7,7 @@ export async function GET() {
       .schema('public')
       .from('employees')
       .select('*')
-      .order('created_at', { ascending: false })
+
       .limit(50)
 
     if (error) {

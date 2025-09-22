@@ -7,7 +7,8 @@ import type {
   TrainingProgram, 
   SkillRequest, 
   SupplyDemandPoint, 
-  TrendPoint 
+  TrendPoint, 
+  Skill 
 } from "./types"
 
 // Employee operations
@@ -17,16 +18,44 @@ export async function getEmployees(): Promise<Employee[]> {
       .from('employees')
       .select('*')
       .order('name')
-    
-    if (error) {
+
+    if (error || !data) {
       console.error('Error fetching employees:', error)
-      return []
+      // Fallback to localStorage
+      if (typeof window !== 'undefined') {
+        const cached = window.localStorage.getItem('employeeDirectory');
+        if (cached) {
+          try {
+            return JSON.parse(cached);
+          } catch (e) {
+            console.error('Error parsing cached employees:', e);
+            return [];
+          }
+        }
+      }
+      return [];
     }
-    
-    return data || []
+
+    // Save to localStorage for offline use
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('employeeDirectory', JSON.stringify(data));
+    }
+    return data || [];
   } catch (error) {
-    console.error('Error in getEmployees:', error)
-    return []
+    console.error('Error in getEmployees:', error);
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      const cached = window.localStorage.getItem('employeeDirectory');
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {
+          console.error('Error parsing cached employees:', e);
+          return [];
+        }
+      }
+    }
+    return [];
   }
 }
 
@@ -94,7 +123,7 @@ export async function getRequests(): Promise<SkillRequest[]> {
     const { data, error } = await supabase
       .from('skill_requests')
       .select('*')
-      .order('created_at', { ascending: false })
+
     
     if (error) {
       console.error('Error fetching skill requests:', error)
@@ -109,7 +138,7 @@ export async function getRequests(): Promise<SkillRequest[]> {
 }
 
 export async function addRequest(
-  req: Omit<SkillRequest, 'id' | 'created_at' | 'status'> & { 
+  req: Omit<SkillRequest, 'id' |  'status'> & { 
     analysisSnapshot?: any 
   }
 ): Promise<SkillRequest | null> {
@@ -251,15 +280,20 @@ export async function getSupplyDemand(): Promise<SupplyDemandPoint[]> {
     const skillCounts: { [key: string]: { supply: number; demand: number } } = {}
     
     employees.forEach(emp => {
-      emp.skills?.forEach(skill => {
+      const skillsArr: Skill[] = Array.isArray(emp.skills)
+      ? emp.skills as Skill[]
+        : typeof emp.skills === 'string'
+          ? []
+          : [];
+      skillsArr.forEach((skill: Skill) => {
         if (!skillCounts[skill.name]) {
           skillCounts[skill.name] = { supply: 0, demand: 5 } // Base demand
         }
         if (skill.level >= 3) { // Consider level 3+ as supply
-          skillCounts[skill.name].supply++
+          skillCounts[skill.name].supply++;
         }
-      })
-    })
+      });
+    });
     
     // Convert to expected format
     return Object.entries(skillCounts).map(([name, counts]) => ({

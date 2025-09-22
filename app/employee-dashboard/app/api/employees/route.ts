@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         email: "AteefHussain@karanji.com",
         department: "Gen AI Development",
         position: "Gen AI Developer",
-        hire_date: "2023-01-15",
+
         years_experience: 3.5,
         competency_score: 87,
       },
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         email: "sumithrnaik@karanji.com",
         department: "Gen AI Development",
         position: "Gen AI Developer",
-        hire_date: "2023-01-15",
+
         years_experience: 1.2,
         competency_score: 82,
       },
@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
     const newEmployee = {
       id: `emp_${Date.now()}`,
       ...employeeData,
-      hire_date: new Date().toISOString().split("T")[0],
       competency_score: 0,
     }
 

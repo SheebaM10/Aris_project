@@ -25,7 +25,7 @@ interface Employee {
   email: string
   department: string
   position: string
-  hire_date: string
+
 }
 
 interface EmployeeStats {
@@ -72,7 +72,7 @@ export default function AdminPanel() {
           email: "AteefHussain@karanji.com",
           department: "Gen AI Development",
           position: "Gen AI Developer",
-          hire_date: "2023-01-15",
+
         },
         {
           id: "emp_002",
@@ -80,7 +80,7 @@ export default function AdminPanel() {
           email: "sumithrnaik@karanji.com",
           department: "Gen AI Development",
           position: "Gen AI Developer",
-          hire_date: "2023-01-15",
+ 
         },
         {
           id: "emp_003",
@@ -88,7 +88,7 @@ export default function AdminPanel() {
           email: "KSumanth@karanji.com",
           department: "Gen AI Development",
           position: "Gen AI Developer",
-          hire_date: "2023-01-15",
+
         },
         {
           id: "emp_004",
@@ -96,7 +96,6 @@ export default function AdminPanel() {
           email: "Sheeba@karanji.com",
           department: "Gen AI Development",
           position: "Gen AI Developer",
-          hire_date: "2023-01-15",
         },
         {
           id: "emp_005",
@@ -104,7 +103,6 @@ export default function AdminPanel() {
           email: "Sowmyashree@karanji.com",
           department: "Gen AI Development",
           position: "Gen AI Developer",
-          hire_date: "2023-01-15",
         },
         {
           id: "emp_006",
@@ -112,7 +110,7 @@ export default function AdminPanel() {
           email: "AthulyaRoy@karanji.com",
           department: "Gen AI Development",
           position: "Gen AI Developer",
-          hire_date: "2023-01-15",
+
         },
         {
           id: "emp_007",
@@ -120,7 +118,7 @@ export default function AdminPanel() {
           email: "Shivani@karanji.com",
           department: "Gen AI Development",
           position: "Gen AI Developer",
-          hire_date: "2023-01-15",
+
         },
       ]
       setEmployees(mockEmployees)
@@ -155,7 +153,7 @@ export default function AdminPanel() {
         email: formData.email,
         department: formData.department,
         position: formData.position,
-        hire_date: new Date().toISOString().split("T")[0],
+
       }
 
       setEmployees((prev) => [...prev, newEmployee])

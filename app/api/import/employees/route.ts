@@ -15,7 +15,7 @@ interface EmployeeData {
   phone: string
   currentProjects: number
   completedProjects: number
-  hireDate: string
+
   skills: string[]
   certifications: string[]
   status: 'active' | 'inactive'
@@ -98,8 +98,6 @@ export async function POST(request: NextRequest) {
       'completedprojects': 'completedProjects',
       'completed_projects': 'completedProjects',
       'skills': 'skills',
-      'hire date': 'hireDate',
-      'hire_date': 'hireDate',
       'certifications': 'certifications',
       'status': 'status'
     }
@@ -222,7 +220,6 @@ export async function POST(request: NextRequest) {
           phone,
           currentProjects,
           completedProjects,
-          hireDate: formattedHireDate,
           skills,
           certifications,
           status: (status === 'active' || status === 'inactive') ? status : 'active'
@@ -269,7 +266,6 @@ export async function POST(request: NextRequest) {
           phone: emp.phone,
           current_projects: emp.currentProjects ?? 0,
           completed_projects: emp.completedProjects ?? 0,
-          hire_date: emp.hireDate,
           skills: emp.skills, // JSONB
           certifications: emp.certifications, // TEXT[]
           status: emp.status

@@ -211,7 +211,7 @@ export async function GET() {
       .schema('public')
       .from('employees')
       .select('*')
-      .order('created_at', { ascending: false })
+
 
     if (dbError) {
       console.warn('Supabase fetch in /api/data failed, falling back to memory:', dbError)
@@ -230,7 +230,6 @@ export async function GET() {
         phone: e.phone,
         currentProjects: e.current_projects ?? 0,
         completedProjects: e.completed_projects ?? 0,
-        hireDate: e.hire_date,
         skills: Array.isArray(e.skills) ? e.skills.map((s: any) => ({ skill: s.skill, level: s.level })) : [],
         certifications: e.certifications ?? [],
         status: e.status
